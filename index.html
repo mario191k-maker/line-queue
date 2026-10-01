@@ -68,6 +68,14 @@
             <span id="live-text">ออฟไลน์</span>
           </span>
         </div>
+        <div id="friend-card" class="bg-white border-2 border-[#06C755] rounded-2xl p-4 space-y-2 shadow-sm" hidden>
+          <p class="font-bold">🔔 รับแจ้งเตือนเมื่อถึงคิว แม้ปิดหน้าจอ</p>
+          <p class="text-sm text-slate-600">เพิ่มเพื่อน LINE ของสหกรณ์ ระบบจะส่งข้อความเข้า LINE เมื่อถึงคิว ดังได้แม้ล็อกหน้าจอ หรือกำลังใช้แอปอื่นอยู่</p>
+          <div class="flex gap-2">
+            <button id="btn-add-friend" type="button" class="flex-1 bg-[#06C755] active:opacity-80 text-white rounded-xl py-3 font-bold">➕ เพิ่มเพื่อน LINE</button>
+            <button id="btn-friend-later" type="button" class="px-4 text-slate-500 text-sm font-semibold">ไว้ทีหลัง</button>
+          </div>
+        </div>
         <div id="today-list" class="space-y-3"></div>
         <div id="future-wrap" class="space-y-3" hidden>
           <h3 class="font-semibold text-slate-600">คิวล่วงหน้า</h3>
@@ -77,7 +85,7 @@
           <button id="btn-test-sound" type="button" class="bg-white border border-slate-200 rounded-xl py-3 font-semibold">🔊 ทดสอบเสียง</button>
           <button id="btn-go-book" type="button" class="bg-emerald-600 active:bg-emerald-700 text-white rounded-xl py-3 font-semibold">+ จองคิวใหม่</button>
         </div>
-        <p class="text-xs text-slate-400 text-center">กรุณาเปิดหน้านี้ค้างไว้และเปิดเสียงโทรศัพท์ ระบบจะแจ้งเตือนเมื่อถึงคิว</p>
+        <p id="status-hint" class="text-xs text-slate-400 text-center">กรุณาเปิดหน้านี้ค้างไว้และเปิดเสียงโทรศัพท์ ระบบจะแจ้งเตือนเมื่อถึงคิว</p>
       </section>
 
       <!-- ===== Booking form ===== -->
@@ -132,7 +140,7 @@
     <div class="bg-white w-full max-w-md rounded-t-3xl p-5 pb-8 space-y-4">
       <h3 class="text-lg font-bold text-center">ยืนยันการจองคิว</h3>
       <dl id="confirm-summary" class="bg-slate-50 rounded-2xl p-4 space-y-2 text-sm"></dl>
-      <p class="text-xs text-slate-500 bg-amber-50 rounded-xl p-3">🔔 เมื่อกด “ยืนยันการจอง” ระบบจะเปิดการแจ้งเตือนด้วยเสียง กรุณาเปิดเสียงโทรศัพท์ (ปิดโหมดเงียบ) และเปิดหน้านี้ค้างไว้</p>
+      <p id="confirm-hint" class="text-xs text-slate-500 bg-amber-50 rounded-xl p-3">🔔 เมื่อกด “ยืนยันการจอง” ระบบจะเปิดการแจ้งเตือนด้วยเสียง กรุณาเปิดเสียงโทรศัพท์ (ปิดโหมดเงียบ) และเปิดหน้านี้ค้างไว้</p>
       <div class="grid grid-cols-2 gap-3">
         <button id="btn-cancel-confirm" type="button" class="border border-slate-300 rounded-xl py-3 font-semibold">แก้ไข</button>
         <button id="btn-confirm" type="button" class="bg-emerald-600 active:bg-emerald-700 disabled:opacity-60 text-white rounded-xl py-3 font-bold">ยืนยันการจอง</button>
@@ -454,6 +462,44 @@ async function loadBootstrap() {
   renderHeader();
   renderBookingForm();
   if (allActive().length) showStatusView(); else showBookView();
+  checkFriendship();
+}
+
+/* ------------------------------------------------------------------ LINE OA (แจ้งเตือนแม้ปิดจอ)
+ * หน้าเว็บถูกมือถือหยุดทำงานเมื่อปิดจอ/สลับแอป → เสียงจากหน้าเว็บดังไม่ได้
+ * ระบบจึงส่งข้อความเข้า LINE แทน ซึ่งสมาชิกต้องเป็นเพื่อนกับ LINE OA ของสหกรณ์ก่อน */
+const friend = { isFriend: null };
+
+async function checkFriendship() {
+  const oa = state.config.lineOaId;
+  if (!oa) { updateFriendCard(); return; }
+  if (!APP.DEV_MODE && liffReady) {
+    try { friend.isFriend = !!(await liff.getFriendship()).friendFlag; }
+    catch (e) { friend.isFriend = store.get('q_friend_added') === oa ? true : null; }   // OA ยังไม่ได้ผูกกับ LIFF
+  }
+  updateFriendCard();
+}
+
+function updateFriendCard() {
+  const oa = state.config.lineOaId;
+  const later = sstore.get('q_friend_later') === '1';
+  $('friend-card').hidden = !oa || friend.isFriend === true || later;
+  const pushOn = !!oa && friend.isFriend === true;
+  $('status-hint').textContent = pushOn
+    ? 'เมื่อถึงคิว ระบบจะส่งข้อความเข้า LINE ของคุณ (ดังแม้ปิดหน้าจอ) · ถ้าเปิดหน้านี้ไว้ จะมีเสียงและหน้าจอเปลี่ยนสีด้วย'
+    : 'กรุณาเปิดหน้านี้ค้างไว้และเปิดเสียงโทรศัพท์ ระบบจะแจ้งเตือนเมื่อถึงคิว';
+  $('confirm-hint').textContent = pushOn
+    ? '🔔 เมื่อถึงคิว ระบบจะส่งข้อความเข้า LINE ของคุณ และถ้าเปิดหน้านี้อยู่จะมีเสียงเตือนด้วย กรุณาเปิดเสียงโทรศัพท์'
+    : '🔔 เมื่อกด “ยืนยันการจอง” ระบบจะเปิดการแจ้งเตือนด้วยเสียง กรุณาเปิดเสียงโทรศัพท์ (ปิดโหมดเงียบ) และเปิดหน้านี้ค้างไว้';
+}
+
+function addFriend() {
+  const oa = state.config.lineOaId;
+  if (!oa) return;
+  const url = 'https://line.me/R/ti/p/' + encodeURIComponent(oa);
+  store.set('q_friend_added', oa);
+  if (!APP.DEV_MODE && liffReady && liff.isInClient()) liff.openWindow({ url, external: false });
+  else window.open(url, '_blank');
 }
 
 function renderHeader() {
@@ -897,6 +943,8 @@ function bindEvents() {
     $('overlay-called').hidden = true;
   });
 
+  $('btn-add-friend').addEventListener('click', addFriend);
+  $('btn-friend-later').addEventListener('click', () => { sstore.set('q_friend_later', '1'); updateFriendCard(); });
   $('btn-go-book').addEventListener('click', showBookView);
   $('btn-go-status').addEventListener('click', showStatusView);
   $('btn-retry').addEventListener('click', () => location.reload());
@@ -905,6 +953,7 @@ function bindEvents() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     if (todayActive().length) { startPolling(); requestWakeLock(); }   // กลับมาหน้าจอ → อัปเดตทันที
+    if (friend.isFriend !== true && state.config.lineOaId) checkFriendship();   // กลับจากหน้าเพิ่มเพื่อน
   });
 }
 
