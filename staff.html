@@ -391,7 +391,11 @@ async function loadDashboard() {
     const card = (label, n, cls) => `<div class="rounded-2xl p-3 ${cls}"><div class="text-2xl font-extrabold">${n}</div><div class="text-xs">${label}</div></div>`;
     $('dash-totals').innerHTML = card('จองทั้งหมด', t.total, 'bg-white border') + card('รอเรียก', t.WAITING, 'bg-amber-50 text-amber-900') +
       card('กำลังเรียก', t.CALLED, 'bg-emerald-50 text-emerald-800') + card('เสร็จสิ้น', t.DONE, 'bg-slate-50') +
-      card('ไม่มา', t.NO_SHOW, 'bg-rose-50 text-rose-800') + card('ยกเลิก', t.CANCELLED, 'bg-slate-50 text-slate-500');
+      card('ไม่มา', t.NO_SHOW, 'bg-rose-50 text-rose-800') + card('ยกเลิก', t.CANCELLED, 'bg-slate-50 text-slate-500') +
+      (!d.push ? '' : d.push.error
+        ? `<div class="col-span-full rounded-2xl p-3 bg-rose-50 text-rose-800 text-sm">LINE แจ้งเตือน: ใช้งานไม่ได้ (${esc(d.push.error)}) — ตรวจ LINE_MESSAGING_TOKEN</div>`
+        : `<div class="col-span-full rounded-2xl p-3 text-sm ${d.push.limit != null && d.push.used >= d.push.limit ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-900'}">
+            💬 ข้อความ LINE เดือนนี้: <b>${d.push.used}</b>${d.push.limit != null ? ' / ' + d.push.limit + (d.push.used >= d.push.limit ? ' — โควตาเต็ม สมาชิกจะได้รับเฉพาะเสียงจากหน้าเว็บ' : '') : ' (ไม่จำกัด)'}</div>`);
     $('dash-depts').innerHTML = d.depts.map((x) => `
       <div class="bg-white rounded-3xl shadow-sm p-4">
         <div class="flex justify-between items-center mb-2">
@@ -421,6 +425,10 @@ const CFG_UI = [
   ['MAX_BOOKINGS_PER_USER_PER_DAY', 'คิวสูงสุดต่อคนต่อวัน', 'number'],
   ['OPEN_WEEKDAYS', 'วันเปิดบริการ (1=จ. … 7=อา.)', 'text'],
   ['ALLOW_SAME_DAY', 'จองคิวของวันนี้ได้', 'bool'],
+  ['PUSH_ENABLED', 'ส่งข้อความ LINE เมื่อถึงคิว (ดังแม้ปิดจอ)', 'bool'],
+  ['PUSH_AHEAD', 'ส่ง LINE "ใกล้ถึงคิว" เมื่อเหลือก่อนหน้า ≤ N คิว (0 = ไม่ส่ง)', 'number'],
+  ['LINE_OA_ID', 'LINE ID ของ Official Account (เช่น @123abcde)', 'text'],
+  ['LIFF_URL', 'ลิงก์หน้าจองคิว (แนบท้ายข้อความ LINE)', 'text'],
 ];
 
 async function loadSettings() {
