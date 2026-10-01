@@ -795,7 +795,8 @@ function applyStatus(d) {
   state.myBookings
     .filter((b) => b.date === state.today && b.status === 'CALLED')
     .forEach((b) => {
-      const key = 'q_notified_' + b.bookingId + '_' + (b.counter || '');
+      // calledAt เปลี่ยนเมื่อเจ้าหน้าที่กด "เรียกซ้ำ" → แจ้งเตือนอีกครั้ง
+      const key = 'q_notified_' + b.bookingId + '_' + (b.counter || '') + '_' + (b.calledAt || '');
       if (!store.get(key)) { store.set(key, '1'); triggerCalled(b); }
     });
 
