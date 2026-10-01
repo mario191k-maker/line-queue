@@ -408,7 +408,14 @@ async function login(forceRefresh) {
   let idToken = 'DEV';
   if (!APP.DEV_MODE) {
     idToken = liff.getIDToken();
-    if (!idToken) throw new Error('อ่าน ID Token ไม่ได้ (ตรวจสอบว่า LIFF เปิด scope "openid")');
+    if (!idToken && !liff.isInClient() && !sstore.get('q_relogin')) {
+      // ล็อกอินที่ค้างไว้ไม่มี ID Token (เช่น ล็อกอินก่อนเปิด scope openid) → ล็อกอินใหม่ 1 ครั้ง
+      sstore.set('q_relogin', '1');
+      liff.logout();
+      liff.login({ redirectUri: location.href });
+      await new Promise(() => {});
+    }
+    if (!idToken) throw new Error('ยืนยันตัวตน LINE ไม่สำเร็จ กรุณาปิดหน้านี้แล้วเปิดลิงก์จองคิวใหม่อีกครั้ง');
   }
   setLoading('กำลังยืนยันตัวตน...');
   let r;
